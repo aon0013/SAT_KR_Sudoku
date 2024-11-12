@@ -31,17 +31,16 @@ def has_empty_clause(cnf_clauses):
     return any(len(clause) == 0 for clause in cnf_clauses)
 
 def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
-    """Simplified Davis-Putnam solver with enhanced error handling."""
-    stats['calls'] += 1
-    stats['visited_locations'] += 1  # Track every location visited in the search space
+    """Davis-Putnam solver."""
+    stats['backtracks'] += 1
 
     # Unsatisfiability due to empty clauses
-    if has_empty_clause(cnf_clauses):
+    if has_empty_clause(cnf_clauses): #checks if any clause is empty
         stats['conflicts'] += 1
         return False, []
 
     # Clauses satisfied?
-    if not cnf_clauses:  # All clauses are satisfied
+    if not cnf_clauses:  # All clauses are satisfied # If `cnf_clauses` is empty, all clauses are satisfied
         return True, assignments
 
     # Check for tautology and remove tautological clauses
@@ -52,12 +51,12 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
     while unit_literals:
         unit = unit_literals.pop(0)
         stats['unit_propagations'] += 1
-        stats['visited_locations'] += 1  # Count as a new location visited
         result = apply_literal(cnf_clauses, assignments[:], unit, stats)
         if result is None:
+            # Conflict detected during unit propagation
             return False, []
-        cnf_clauses, assignments = result
-        if has_empty_clause(cnf_clauses):
+        cnf_clauses, assignments = result  # Update clauses and assignments
+        if has_empty_clause(cnf_clauses):  # Check again after propagation
             stats['conflicts'] += 1
             return False, []
         unit_literals = [c[0] for c in cnf_clauses if len(c) == 1]
@@ -68,21 +67,24 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
         pure_literals = [l for l in literals if -l not in literals]
         for pure in pure_literals:
             stats['pure_literals'] += 1
-            stats['visited_locations'] += 1  # Count as a new location visited
             result = apply_literal(cnf_clauses, assignments[:], pure, stats)
             if result is None:
+                # Conflict detected during pure literal assignment
                 return False, []
-            cnf_clauses, assignments = result
+            cnf_clauses, assignments = result  # Update clauses and assignments
 
     # Branching
-    stats['decisions'] += 1
-    stats['visited_locations'] += 1  # Count branching as a new location visited
+    if not cnf_clauses:
+        return True, assignments  # All clauses are satisfied
 
+    stats['decisions'] += 1
+
+    # Variable selection heuristic: choose the first unassigned literal
     literals = set(abs(lit) for clause in cnf_clauses for lit in clause)
     assigned_vars = set(abs(lit) for lit in assignments)
     unassigned_vars = literals - assigned_vars
     if not unassigned_vars:
-        return False, []
+        return False, []  # No unassigned variables left but clauses remain
     literal = next(iter(unassigned_vars))
 
     # Assigning literal to true
@@ -99,6 +101,7 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
         cnf_clauses_new, assignments_new = result
         return dp_solver(cnf_clauses_new, assignments_new, stats, use_pure_literals)
 
+    # Conflict detected in both assignments
     return False, []
 
 def apply_literal(cnf_clauses, assignments, literal, stats):
@@ -109,12 +112,13 @@ def apply_literal(cnf_clauses, assignments, literal, stats):
 
     for clause in cnf_clauses:
         if literal in clause:
-            continue
+            continue  # Clause is satisfied
         elif -literal in clause:
             new_clause = [lit for lit in clause if lit != -literal]
             if not new_clause:
+                # Empty clause generated, conflict
                 stats['conflicts'] += 1
-                return None
+                return None  # Indicate conflict
             updated_clauses.append(new_clause)
         else:
             updated_clauses.append(clause)
@@ -125,15 +129,15 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
     """Solve multiple Sudoku puzzles and save solutions in DIMACS format."""
     rules = parse_dimacs(sudoku_rules)
     puzzles = load_puzzles(sudoku_puzzles)
+    backtracker = []
 
     for idx, puzzle in enumerate(puzzles):
         stats = {
-            'calls': 0,
+            'backtracks': -1,
             'decisions': 0,
             'unit_propagations': 0,
             'conflicts': 0,
-            'pure_literals': 0,
-            'visited_locations': 0
+            'pure_literals': 0
         }
         print(f"Solving puzzle {idx + 1}")
         puzzle_clauses = sudoku_to_cnf(puzzle)
@@ -142,10 +146,12 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
 
         solvable, solution = dp_solver(clauses, assignments, stats, use_pure_literals=True)
 
+        # Output to DIMACS
         output_filename = f"{output_prefix}_puzzle_{idx + 1}_solution.txt"
         if solvable:
             print(f"Puzzle {idx + 1} is solvable.")
             save_solution(output_filename, solution)
+            print(f"Solution written to {output_filename}")
             grid = format_grid(solution)
             print("Solution Grid:")
             print_grid(grid)
@@ -153,8 +159,10 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
             print(f"Puzzle {idx + 1} is unsolvable.")
             with open(output_filename, 'w') as f:
                 f.write("UNSAT\n")
-        print(f"Stats for puzzle {idx + 1}: {stats}")
-        print(f"Total unique locations visited: {stats['visited_locations']}\n")
+        print(f"Stats for puzzle {idx + 1}: {stats}\n")
+        backtracker.append(stats['backtracks'])
+
+    print(backtracker)
 
 def save_solution(filename, solution):
     """Save solution in DIMACS format."""
@@ -192,7 +200,6 @@ def print_grid(grid):
 # Example usage:
 solve_puzzles(
     "sudoku-rules-9x9.txt",
-    "50 easy sudokus.txt",
-    "solutions_easy/solution"
+    "50 extreme sudokus.txt",
+    "solutions_extreme/solution"
 )
-
