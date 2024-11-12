@@ -132,7 +132,7 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
 
     for idx, puzzle in enumerate(puzzles):
         stats = {
-            'backtracks': 0,
+            'backtracks': -1,
             'decisions': 0,
             'unit_propagations': 0,
             'conflicts': 0,
@@ -195,7 +195,7 @@ def print_grid(grid):
 
 # Example usage:
 solve_puzzles(
-     "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/sudoku_rules_9x9.txt",
-    "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/50_extreme_sudokus.txt",
-    "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/Code/solutions_extreme3/solution"
-    )
+    "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/sudoku_rules_9x9.txt",
+    "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/50_easy_sodokus.txt",
+    "C:/Users/floor/Documents/GitHub/SAT_KR_Sudoku/SAT_Group29/Code/solutions_easy2/solution"
+)
