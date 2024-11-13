@@ -1,3 +1,13 @@
+''' It works well on a lot, but it sometimes gets stuck in a mini loop before finding its way out. below are the baclktracks and averages and standard deviations comparing it to dpll:
+
+extreme_DLIS_backtracks = [35, 0, 15, 3, 42, 79, 13, 2, 13, 13, 167, 45, 1047, 1, 2, 0, 0, 12, 4, 485, 19, 1, 2, 6, 5, 0, 110, 0, 6, 92, 5, 0, 5, 15, 4, 13, 0, 1, 1, 1, 5, 0, 0, 0, 0, 3, 1, 0, 93, 1]
+extreme_dpll_backtracks = [25, 50, 2, 1, 2, 29, 4, 7, 5, 4, 2, 24, 37, 6, 9, 9, 10, 0, 2, 27, 9, 41, 11, 11, 1, 0, 20, 0, 2, 30, 0, 15, 1, 20, 3, 1, 0, 1, 22, 0, 0, 0, 0, 0, 0, 11, 0, 0, 4, 0]
+# dpll: Mean: 9.16, SD: 12.19239106984352
+# DLIS: Mean: 47.34, SD: 160.599453299194
+'''
+
+
+
 def parse_dimacs(file_path):
     """Load clauses from a DIMACS file."""
     clauses_list = []
