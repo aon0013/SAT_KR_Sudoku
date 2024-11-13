@@ -31,16 +31,15 @@ def has_empty_clause(cnf_clauses):
     return any(len(clause) == 0 for clause in cnf_clauses)
 
 def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
-    """Davis-Putnam solver."""
-    stats['backtracks'] += 1
+    """Davis-Putnam solver with correct backtrack implementation."""
 
     # Unsatisfiability due to empty clauses
-    if has_empty_clause(cnf_clauses): #checks if any clause is empty
+    if has_empty_clause(cnf_clauses):
         stats['conflicts'] += 1
         return False, []
 
     # Clauses satisfied?
-    if not cnf_clauses:  # All clauses are satisfied # If `cnf_clauses` is empty, all clauses are satisfied
+    if not cnf_clauses:
         return True, assignments
 
     # Check for tautology and remove tautological clauses
@@ -54,6 +53,7 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
         result = apply_literal(cnf_clauses, assignments[:], unit, stats)
         if result is None:
             # Conflict detected during unit propagation
+            stats['conflicts'] += 1
             return False, []
         cnf_clauses, assignments = result  # Update clauses and assignments
         if has_empty_clause(cnf_clauses):  # Check again after propagation
@@ -70,6 +70,7 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
             result = apply_literal(cnf_clauses, assignments[:], pure, stats)
             if result is None:
                 # Conflict detected during pure literal assignment
+                stats['conflicts'] += 1
                 return False, []
             cnf_clauses, assignments = result  # Update clauses and assignments
 
@@ -84,6 +85,7 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
     assigned_vars = set(abs(lit) for lit in assignments)
     unassigned_vars = literals - assigned_vars
     if not unassigned_vars:
+        stats['conflicts'] += 1
         return False, []  # No unassigned variables left but clauses remain
     literal = next(iter(unassigned_vars))
 
@@ -95,11 +97,19 @@ def dp_solver(cnf_clauses, assignments, stats, use_pure_literals=True):
         if sat:
             return True, final_assignments
 
+    # Increment backtracks here since we're backtracking from a failed assignment
+    stats['backtracks'] += 1
+
     # Assigning literal to false
     result = apply_literal(cnf_clauses, assignments[:], -literal, stats)
     if result is not None:
         cnf_clauses_new, assignments_new = result
-        return dp_solver(cnf_clauses_new, assignments_new, stats, use_pure_literals)
+        sat, final_assignments = dp_solver(cnf_clauses_new, assignments_new, stats, use_pure_literals)
+        if sat:
+            return True, final_assignments
+
+    # Increment backtracks again since both assignments failed
+    stats['backtracks'] += 1
 
     # Conflict detected in both assignments
     return False, []
@@ -133,7 +143,7 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
 
     for idx, puzzle in enumerate(puzzles):
         stats = {
-            'backtracks': -1,
+            'backtracks': 0,
             'decisions': 0,
             'unit_propagations': 0,
             'conflicts': 0,
@@ -162,7 +172,7 @@ def solve_puzzles(sudoku_rules, sudoku_puzzles, output_prefix):
         print(f"Stats for puzzle {idx + 1}: {stats}\n")
         backtracker.append(stats['backtracks'])
 
-    print(backtracker)
+    print("Backtracks per puzzle:", backtracker)
 
 def save_solution(filename, solution):
     """Save solution in DIMACS format."""
